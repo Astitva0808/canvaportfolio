@@ -47,7 +47,7 @@ export default function DashboardPage() {
 
   return (
     <main className="min-h-screen bg-black text-white p-8">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-5xl mx-auto">
 
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
@@ -79,8 +79,8 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Quick Actions — 4 cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
 
           <Card
             onClick={() => router.push('/profile')}
@@ -89,36 +89,37 @@ export default function DashboardPage() {
             <CardContent className="pt-6">
               <div className="text-3xl mb-2">✏️</div>
               <h3 className="font-semibold">Edit Profile</h3>
-              <p className="text-gray-400 text-sm mt-1">
-                Add your projects, skills and experience
-              </p>
+              <p className="text-gray-400 text-sm mt-1">Add your skills and experience</p>
             </CardContent>
           </Card>
 
           <Card
-            className="border-gray-800 bg-gray-950 text-white cursor-pointer hover:border-purple-500 transition-all hover:scale-105"
+            onClick={() => router.push('/projects')}
+            className="border-gray-800 bg-gray-950 text-white cursor-pointer hover:border-yellow-500 transition-all hover:scale-105"
           >
+            <CardContent className="pt-6">
+              <div className="text-3xl mb-2">💼</div>
+              <h3 className="font-semibold">My Projects</h3>
+              <p className="text-gray-400 text-sm mt-1">Add and manage your projects</p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-gray-800 bg-gray-950 text-white cursor-pointer hover:border-purple-500 transition-all hover:scale-105">
             <CardContent className="pt-6">
               <div className="text-3xl mb-2">🎨</div>
               <h3 className="font-semibold">Choose Template</h3>
-              <p className="text-gray-400 text-sm mt-1">
-                Pick and customize your portfolio style
-              </p>
+              <p className="text-gray-400 text-sm mt-1">Pick your portfolio style</p>
               <span className="mt-2 inline-block rounded-full bg-purple-900/40 px-2 py-0.5 text-xs text-purple-300 border border-purple-800">
                 Coming soon
               </span>
             </CardContent>
           </Card>
 
-          <Card
-            className="border-gray-800 bg-gray-950 text-white cursor-pointer hover:border-green-500 transition-all hover:scale-105"
-          >
+          <Card className="border-gray-800 bg-gray-950 text-white cursor-pointer hover:border-green-500 transition-all hover:scale-105">
             <CardContent className="pt-6">
               <div className="text-3xl mb-2">🚀</div>
               <h3 className="font-semibold">View Portfolio</h3>
-              <p className="text-gray-400 text-sm mt-1">
-                See your live portfolio page
-              </p>
+              <p className="text-gray-400 text-sm mt-1">See your live portfolio page</p>
               <span className="mt-2 inline-block rounded-full bg-green-900/40 px-2 py-0.5 text-xs text-green-300 border border-green-800">
                 Coming soon
               </span>
@@ -134,7 +135,7 @@ export default function DashboardPage() {
             <div className="rounded-lg border border-gray-800 bg-gray-950 p-4">
               <p className="text-xs text-gray-500 uppercase tracking-wide">Profile</p>
               <p className="text-2xl font-bold text-blue-400 mt-1">Step 1</p>
-              <p className="text-xs text-gray-400 mt-1">Fill your info</p>
+              <p className="text-xs text-gray-400 mt-1">Fill your info + projects</p>
             </div>
             <div className="rounded-lg border border-gray-800 bg-gray-950 p-4">
               <p className="text-xs text-gray-500 uppercase tracking-wide">Template</p>
