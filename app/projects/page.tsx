@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
@@ -15,6 +15,8 @@ type Project = {
   tech_stack: string
   live_url: string
   github_url: string
+  thumbnail_url: string
+  video_url: string
 }
 
 const emptyProject: Project = {
@@ -23,6 +25,8 @@ const emptyProject: Project = {
   tech_stack: '',
   live_url: '',
   github_url: '',
+  thumbnail_url: '',
+  video_url: '',
 }
 
 export default function ProjectsPage() {
@@ -32,15 +36,14 @@ export default function ProjectsPage() {
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [error, setError] = useState('')
+  const [uploadingIndex, setUploadingIndex] = useState<number | null>(null)
+  const [uploadingVideoIndex, setUploadingVideoIndex] = useState<number | null>(null)
   const router = useRouter()
 
   useEffect(() => {
     async function loadProjects() {
       const { data: { session } } = await supabase.auth.getSession()
-      if (!session) {
-        router.push('/login')
-        return
-      }
+      if (!session) { router.push('/login'); return }
       setUserId(session.user.id)
       const { data } = await supabase
         .from('projects')
@@ -69,6 +72,42 @@ export default function ProjectsPage() {
     setProjects(prev => prev.filter((_, i) => i !== index))
   }
 
+  async function uploadThumbnail(index: number, file: File) {
+    if (!userId) return
+    setUploadingIndex(index)
+    try {
+      const fileExt = file.name.split('.').pop()
+      const fileName = `${userId}/project-${Date.now()}-thumbnail.${fileExt}`
+      const { error: uploadError } = await supabase.storage
+        .from('project-media')
+        .upload(fileName, file, { upsert: true })
+      if (uploadError) throw uploadError
+      const { data } = supabase.storage.from('project-media').getPublicUrl(fileName)
+      handleChange(index, 'thumbnail_url', data.publicUrl)
+    } catch (err) {
+      setError('Failed to upload image. Please try again.')
+    }
+    setUploadingIndex(null)
+  }
+
+  async function uploadVideo(index: number, file: File) {
+    if (!userId) return
+    setUploadingVideoIndex(index)
+    try {
+      const fileExt = file.name.split('.').pop()
+      const fileName = `${userId}/project-${Date.now()}-video.${fileExt}`
+      const { error: uploadError } = await supabase.storage
+        .from('project-media')
+        .upload(fileName, file, { upsert: true })
+      if (uploadError) throw uploadError
+      const { data } = supabase.storage.from('project-media').getPublicUrl(fileName)
+      handleChange(index, 'video_url', data.publicUrl)
+    } catch (err) {
+      setError('Failed to upload video. Please try again.')
+    }
+    setUploadingVideoIndex(null)
+  }
+
   async function handleSave() {
     if (!userId) return
     setSaving(true)
@@ -84,6 +123,8 @@ export default function ProjectsPage() {
         tech_stack: p.tech_stack,
         live_url: p.live_url,
         github_url: p.github_url,
+        thumbnail_url: p.thumbnail_url,
+        video_url: p.video_url,
       }))
     if (projectsToInsert.length > 0) {
       const { error } = await supabase.from('projects').insert(projectsToInsert)
@@ -105,6 +146,8 @@ export default function ProjectsPage() {
   return (
     <main className="min-h-screen bg-black text-white p-8">
       <div className="max-w-2xl mx-auto">
+
+        {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold">My Projects</h1>
@@ -139,6 +182,8 @@ export default function ProjectsPage() {
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
+
+              {/* Title */}
               <div className="space-y-2">
                 <Label>Project Title</Label>
                 <Input
@@ -148,6 +193,8 @@ export default function ProjectsPage() {
                   className="border-gray-700 bg-gray-900 text-white"
                 />
               </div>
+
+              {/* Description */}
               <div className="space-y-2">
                 <Label>Description</Label>
                 <textarea
@@ -158,6 +205,8 @@ export default function ProjectsPage() {
                   className="w-full rounded-md border border-gray-700 bg-gray-900 px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
+
+              {/* Tech Stack */}
               <div className="space-y-2">
                 <Label>Tech Stack (comma separated)</Label>
                 <Input
@@ -178,6 +227,8 @@ export default function ProjectsPage() {
                   </div>
                 )}
               </div>
+
+              {/* URLs */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Live URL</Label>
@@ -198,6 +249,82 @@ export default function ProjectsPage() {
                   />
                 </div>
               </div>
+
+              {/* Thumbnail Upload */}
+              <div className="space-y-2">
+                <Label>Project Thumbnail Image</Label>
+                <div className="flex items-center gap-3">
+                  <label className="cursor-pointer">
+                    <div className="rounded-md border border-dashed border-gray-600 bg-gray-900 px-4 py-2 text-sm text-gray-400 hover:border-blue-500 hover:text-blue-400 transition-colors">
+                      {uploadingIndex === index ? 'Uploading...' : '📷 Choose Image'}
+                    </div>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      disabled={uploadingIndex === index}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0]
+                        if (file) uploadThumbnail(index, file)
+                      }}
+                    />
+                  </label>
+                  {project.thumbnail_url && (
+                    <div className="flex items-center gap-2">
+                      <img
+                        src={project.thumbnail_url}
+                        alt="Thumbnail preview"
+                        className="h-12 w-20 rounded object-cover border border-gray-700"
+                      />
+                      <button
+                        onClick={() => handleChange(index, 'thumbnail_url', '')}
+                        className="text-red-400 text-xs hover:text-red-300"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  )}
+                </div>
+                <p className="text-xs text-gray-500">Recommended: PNG or JPG, max 5MB</p>
+              </div>
+
+              {/* Video Upload */}
+              <div className="space-y-2">
+                <Label>Demo Video</Label>
+                <div className="flex items-center gap-3">
+                  <label className="cursor-pointer">
+                    <div className="rounded-md border border-dashed border-gray-600 bg-gray-900 px-4 py-2 text-sm text-gray-400 hover:border-purple-500 hover:text-purple-400 transition-colors">
+                      {uploadingVideoIndex === index ? 'Uploading...' : '🎥 Choose Video'}
+                    </div>
+                    <input
+                      type="file"
+                      accept="video/*"
+                      className="hidden"
+                      disabled={uploadingVideoIndex === index}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0]
+                        if (file) uploadVideo(index, file)
+                      }}
+                    />
+                  </label>
+                  {project.video_url && (
+                    <div className="flex items-center gap-2">
+                      <video
+                        src={project.video_url}
+                        className="h-12 w-20 rounded object-cover border border-gray-700"
+                      />
+                      <button
+                        onClick={() => handleChange(index, 'video_url', '')}
+                        className="text-red-400 text-xs hover:text-red-300"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  )}
+                </div>
+                <p className="text-xs text-gray-500">Recommended: MP4, max 50MB</p>
+              </div>
+
             </CardContent>
           </Card>
         ))}
@@ -217,6 +344,7 @@ export default function ProjectsPage() {
         >
           {saving ? 'Saving...' : 'Save All Projects'}
         </Button>
+
       </div>
     </main>
   )
