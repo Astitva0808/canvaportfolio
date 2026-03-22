@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
@@ -38,6 +38,7 @@ export default function ProjectsPage() {
   const [error, setError] = useState('')
   const [uploadingIndex, setUploadingIndex] = useState<number | null>(null)
   const [uploadingVideoIndex, setUploadingVideoIndex] = useState<number | null>(null)
+  const [generatingIndex, setGeneratingIndex] = useState<number | null>(null)
   const router = useRouter()
 
   useEffect(() => {
@@ -72,6 +73,39 @@ export default function ProjectsPage() {
     setProjects(prev => prev.filter((_, i) => i !== index))
   }
 
+  async function generateProjectDescription(index: number) {
+    const project = projects[index]
+    if (!project.title) {
+      setError('Please enter a project title before generating a description.')
+      return
+    }
+    setGeneratingIndex(index)
+    setError('')
+    try {
+      const res = await fetch('/api/ai/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'project',
+          data: {
+            title: project.title,
+            tech_stack: project.tech_stack,
+            description: project.description || 'No description provided',
+          }
+        })
+      })
+      const data = await res.json()
+      if (data.result) {
+        handleChange(index, 'description', data.result)
+      } else {
+        setError('AI generation failed. Please try again.')
+      }
+    } catch {
+      setError('Failed to connect to AI. Please try again.')
+    }
+    setGeneratingIndex(null)
+  }
+
   async function uploadThumbnail(index: number, file: File) {
     if (!userId) return
     setUploadingIndex(index)
@@ -84,7 +118,7 @@ export default function ProjectsPage() {
       if (uploadError) throw uploadError
       const { data } = supabase.storage.from('project-media').getPublicUrl(fileName)
       handleChange(index, 'thumbnail_url', data.publicUrl)
-    } catch (err) {
+    } catch {
       setError('Failed to upload image. Please try again.')
     }
     setUploadingIndex(null)
@@ -102,7 +136,7 @@ export default function ProjectsPage() {
       if (uploadError) throw uploadError
       const { data } = supabase.storage.from('project-media').getPublicUrl(fileName)
       handleChange(index, 'video_url', data.publicUrl)
-    } catch (err) {
+    } catch {
       setError('Failed to upload video. Please try again.')
     }
     setUploadingVideoIndex(null)
@@ -147,7 +181,6 @@ export default function ProjectsPage() {
     <main className="min-h-screen bg-black text-white p-8">
       <div className="max-w-2xl mx-auto">
 
-        {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold">My Projects</h1>
@@ -183,7 +216,6 @@ export default function ProjectsPage() {
             </CardHeader>
             <CardContent className="space-y-4">
 
-              {/* Title */}
               <div className="space-y-2">
                 <Label>Project Title</Label>
                 <Input
@@ -194,19 +226,28 @@ export default function ProjectsPage() {
                 />
               </div>
 
-              {/* Description */}
+              {/* Description with AI button */}
               <div className="space-y-2">
-                <Label>Description</Label>
+                <div className="flex items-center justify-between">
+                  <Label>Description</Label>
+                  <button
+                    onClick={() => generateProjectDescription(index)}
+                    disabled={generatingIndex === index}
+                    className="text-xs text-blue-400 hover:text-blue-300 border border-blue-800 rounded-full px-3 py-1 bg-blue-900/20 hover:bg-blue-900/40 transition-colors disabled:opacity-50"
+                  >
+                    {generatingIndex === index ? '✨ Generating...' : '✨ Expand with AI'}
+                  </button>
+                </div>
                 <textarea
-                  placeholder="Describe what this project does..."
+                  placeholder="Enter a brief description or keywords, then click Expand with AI..."
                   value={project.description}
                   onChange={(e) => handleChange(index, 'description', e.target.value)}
                   rows={3}
                   className="w-full rounded-md border border-gray-700 bg-gray-900 px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
+                <p className="text-xs text-gray-500">💡 Enter title + tech stack first, then click Expand with AI</p>
               </div>
 
-              {/* Tech Stack */}
               <div className="space-y-2">
                 <Label>Tech Stack (comma separated)</Label>
                 <Input
@@ -228,7 +269,6 @@ export default function ProjectsPage() {
                 )}
               </div>
 
-              {/* URLs */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Live URL</Label>
@@ -271,21 +311,12 @@ export default function ProjectsPage() {
                   </label>
                   {project.thumbnail_url && (
                     <div className="flex items-center gap-2">
-                      <img
-                        src={project.thumbnail_url}
-                        alt="Thumbnail preview"
-                        className="h-12 w-20 rounded object-cover border border-gray-700"
-                      />
-                      <button
-                        onClick={() => handleChange(index, 'thumbnail_url', '')}
-                        className="text-red-400 text-xs hover:text-red-300"
-                      >
-                        Remove
-                      </button>
+                      <img src={project.thumbnail_url} alt="Thumbnail" className="h-12 w-20 rounded object-cover border border-gray-700" />
+                      <button onClick={() => handleChange(index, 'thumbnail_url', '')} className="text-red-400 text-xs hover:text-red-300">Remove</button>
                     </div>
                   )}
                 </div>
-                <p className="text-xs text-gray-500">Recommended: PNG or JPG, max 5MB</p>
+                <p className="text-xs text-gray-500">PNG or JPG, max 5MB</p>
               </div>
 
               {/* Video Upload */}
@@ -309,20 +340,12 @@ export default function ProjectsPage() {
                   </label>
                   {project.video_url && (
                     <div className="flex items-center gap-2">
-                      <video
-                        src={project.video_url}
-                        className="h-12 w-20 rounded object-cover border border-gray-700"
-                      />
-                      <button
-                        onClick={() => handleChange(index, 'video_url', '')}
-                        className="text-red-400 text-xs hover:text-red-300"
-                      >
-                        Remove
-                      </button>
+                      <video src={project.video_url} className="h-12 w-20 rounded object-cover border border-gray-700" />
+                      <button onClick={() => handleChange(index, 'video_url', '')} className="text-red-400 text-xs hover:text-red-300">Remove</button>
                     </div>
                   )}
                 </div>
-                <p className="text-xs text-gray-500">Recommended: MP4, max 50MB</p>
+                <p className="text-xs text-gray-500">MP4, max 50MB</p>
               </div>
 
             </CardContent>
