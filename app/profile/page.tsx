@@ -9,6 +9,7 @@ import Link from 'next/link'
 
 type Profile = {
   full_name: string
+  username: string
   title: string
   bio: string
   location: string
@@ -21,6 +22,7 @@ type Profile = {
 export default function ProfilePage() {
   const [profile, setProfile] = useState<Profile>({
     full_name: '',
+    username: '',
     title: '',
     bio: '',
     location: '',
@@ -50,6 +52,7 @@ export default function ProfilePage() {
       if (data) {
         setProfile({
           full_name: data.full_name || '',
+          username: data.username || '',
           title: data.title || '',
           bio: data.bio || '',
           location: data.location || '',
@@ -69,6 +72,14 @@ export default function ProfilePage() {
     setSaving(true)
     setError('')
     setSaved(false)
+
+    // Check username is valid — only lowercase letters, numbers, hyphens
+    if (profile.username && !/^[a-z0-9-]+$/.test(profile.username)) {
+      setError('Username can only contain lowercase letters, numbers and hyphens.')
+      setSaving(false)
+      return
+    }
+
     const { error } = await supabase
       .from('profiles')
       .upsert({ id: userId, ...profile, updated_at: new Date().toISOString() })
@@ -81,6 +92,14 @@ export default function ProfilePage() {
 
   function handleChange(field: keyof Profile, value: string) {
     setProfile(prev => ({ ...prev, [field]: value }))
+  }
+
+  // Auto-generate username from full name
+  function generateUsername() {
+    if (profile.full_name) {
+      const slug = profile.full_name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+      handleChange('username', slug)
+    }
   }
 
   async function generateBio() {
@@ -96,29 +115,19 @@ export default function ProfilePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           type: 'bio',
-          data: {
-            name: profile.full_name,
-            title: profile.title,
-            skills: profile.skills,
-            location: profile.location,
-          }
+          data: { name: profile.full_name, title: profile.title, skills: profile.skills, location: profile.location }
         })
       })
       const data = await res.json()
-      if (data.result) {
-        handleChange('bio', data.result)
-      } else {
-        setError('AI generation failed. Please try again.')
-      }
-    } catch {
-      setError('Failed to connect to AI. Please try again.')
-    }
+      if (data.result) { handleChange('bio', data.result) }
+      else { setError('AI generation failed. Please try again.') }
+    } catch { setError('Failed to connect to AI.') }
     setGeneratingBio(false)
   }
 
   async function generateTagline() {
     if (!profile.skills || !profile.title) {
-      setError('Please fill in your title and skills before generating a tagline.')
+      setError('Please fill in your title and skills first.')
       return
     }
     setGeneratingTagline(true)
@@ -129,21 +138,13 @@ export default function ProfilePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           type: 'skills',
-          data: {
-            skills: profile.skills,
-            title: profile.title,
-          }
+          data: { skills: profile.skills, title: profile.title }
         })
       })
       const data = await res.json()
-      if (data.result) {
-        handleChange('title', data.result)
-      } else {
-        setError('AI generation failed. Please try again.')
-      }
-    } catch {
-      setError('Failed to connect to AI. Please try again.')
-    }
+      if (data.result) { handleChange('title', data.result) }
+      else { setError('AI generation failed. Please try again.') }
+    } catch { setError('Failed to connect to AI.') }
     setGeneratingTagline(false)
   }
 
@@ -159,7 +160,6 @@ export default function ProfilePage() {
     <main className="min-h-screen bg-black text-white p-8">
       <div className="max-w-2xl mx-auto">
 
-        {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold">Edit Profile</h1>
@@ -177,10 +177,9 @@ export default function ProfilePage() {
 
         {/* Personal Info */}
         <Card className="border-gray-800 bg-gray-950 text-white mb-6">
-          <CardHeader>
-            <CardTitle className="text-lg">Personal Info</CardTitle>
-          </CardHeader>
+          <CardHeader><CardTitle className="text-lg">Personal Info</CardTitle></CardHeader>
           <CardContent className="space-y-4">
+
             <div className="space-y-2">
               <Label>Full Name</Label>
               <Input
@@ -191,7 +190,35 @@ export default function ProfilePage() {
               />
             </div>
 
-            {/* Title with AI tagline button */}
+            {/* Username field */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label>Portfolio Username</Label>
+                <button
+                  onClick={generateUsername}
+                  className="text-xs text-gray-400 hover:text-white border border-gray-700 rounded-full px-3 py-1 bg-gray-900 hover:bg-gray-800 transition-colors"
+                >
+                  Auto-generate from name
+                </button>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-gray-500 text-sm">localhost:3000/site/</span>
+                <Input
+                  placeholder="astitva-srivastava"
+                  value={profile.username}
+                  onChange={(e) => handleChange('username', e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+                  className="border-gray-700 bg-gray-900 text-white flex-1"
+                />
+              </div>
+              {profile.username && (
+                <p className="text-xs text-green-400">
+                  Your portfolio: localhost:3000/site/{profile.username}
+                </p>
+              )}
+              <p className="text-xs text-gray-500">Only lowercase letters, numbers and hyphens</p>
+            </div>
+
+            {/* Title with AI */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label>Professional Title</Label>
@@ -221,7 +248,7 @@ export default function ProfilePage() {
               />
             </div>
 
-            {/* Bio with AI generate button */}
+            {/* Bio with AI */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label>Bio</Label>
@@ -234,24 +261,20 @@ export default function ProfilePage() {
                 </button>
               </div>
               <textarea
-                placeholder="Write a short bio about yourself, or click Generate with AI above!"
+                placeholder="Write a short bio, or click Generate with AI!"
                 value={profile.bio}
                 onChange={(e) => handleChange('bio', e.target.value)}
                 rows={4}
                 className="w-full rounded-md border border-gray-700 bg-gray-900 px-3 py-2 text-sm text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
-              <p className="text-xs text-gray-500">
-                💡 Fill in your name, title and skills first, then click Generate with AI
-              </p>
+              <p className="text-xs text-gray-500">💡 Fill in name, title and skills first, then Generate with AI</p>
             </div>
           </CardContent>
         </Card>
 
         {/* Skills */}
         <Card className="border-gray-800 bg-gray-950 text-white mb-6">
-          <CardHeader>
-            <CardTitle className="text-lg">Skills</CardTitle>
-          </CardHeader>
+          <CardHeader><CardTitle className="text-lg">Skills</CardTitle></CardHeader>
           <CardContent>
             <div className="space-y-2">
               <Label>Skills (comma separated)</Label>
@@ -279,9 +302,7 @@ export default function ProfilePage() {
 
         {/* Links */}
         <Card className="border-gray-800 bg-gray-950 text-white mb-6">
-          <CardHeader>
-            <CardTitle className="text-lg">Links</CardTitle>
-          </CardHeader>
+          <CardHeader><CardTitle className="text-lg">Links</CardTitle></CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label>GitHub URL</Label>
@@ -313,7 +334,6 @@ export default function ProfilePage() {
           </CardContent>
         </Card>
 
-        {/* Save Button */}
         <Button
           onClick={handleSave}
           disabled={saving}

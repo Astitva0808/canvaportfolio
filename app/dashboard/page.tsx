@@ -16,17 +16,24 @@ type User = {
 
 export default function DashboardPage() {
   const [user, setUser] = useState<User | null>(null)
+  const [username, setUsername] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const router = useRouter()
 
   useEffect(() => {
     async function getUser() {
       const { data: { session } } = await supabase.auth.getSession()
-      if (!session) {
-        router.push('/login')
-        return
-      }
+      if (!session) { router.push('/login'); return }
       setUser(session.user as User)
+
+      // Load username from profiles
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('username')
+        .eq('id', session.user.id)
+        .single()
+
+      if (profile?.username) setUsername(profile.username)
       setLoading(false)
     }
     getUser()
@@ -76,10 +83,23 @@ export default function DashboardPage() {
             <p className="text-gray-400 text-sm mt-1">
               Account created: {new Date(user?.created_at ?? '').toLocaleDateString()}
             </p>
+            {username && (
+              <div className="mt-3 flex items-center gap-2">
+                <span className="text-gray-500 text-xs">Your portfolio:</span>
+                <a
+                  href={`/site/${username}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-400 text-xs hover:underline"
+                >
+                  localhost:3000/site/{username} ↗
+                </a>
+              </div>
+            )}
           </CardContent>
         </Card>
 
-        {/* Quick Actions — 4 cards */}
+        {/* Quick Actions */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
 
           <Card
@@ -104,7 +124,9 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
 
-          <Card className="border-gray-800 bg-gray-950 text-white cursor-pointer hover:border-purple-500 transition-all hover:scale-105">
+          <Card
+            className="border-gray-800 bg-gray-950 text-white cursor-pointer hover:border-purple-500 transition-all hover:scale-105"
+          >
             <CardContent className="pt-6">
               <div className="text-3xl mb-2">🎨</div>
               <h3 className="font-semibold">Choose Template</h3>
@@ -115,14 +137,22 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
 
-          <Card className="border-gray-800 bg-gray-950 text-white cursor-pointer hover:border-green-500 transition-all hover:scale-105">
+          {/* View Portfolio — now links to real portfolio! */}
+          <Card
+            onClick={() => username ? window.open(`/site/${username}`, '_blank') : router.push('/profile')}
+            className="border-gray-800 bg-gray-950 text-white cursor-pointer hover:border-green-500 transition-all hover:scale-105"
+          >
             <CardContent className="pt-6">
               <div className="text-3xl mb-2">🚀</div>
               <h3 className="font-semibold">View Portfolio</h3>
-              <p className="text-gray-400 text-sm mt-1">See your live portfolio page</p>
-              <span className="mt-2 inline-block rounded-full bg-green-900/40 px-2 py-0.5 text-xs text-green-300 border border-green-800">
-                Coming soon
-              </span>
+              <p className="text-gray-400 text-sm mt-1">
+                {username ? 'See your live portfolio' : 'Set username in profile first'}
+              </p>
+              {username && (
+                <span className="mt-2 inline-block rounded-full bg-green-900/40 px-2 py-0.5 text-xs text-green-300 border border-green-800">
+                  Live ✓
+                </span>
+              )}
             </CardContent>
           </Card>
 
