@@ -125,6 +125,7 @@ export default function DashboardPage() {
           </Card>
 
           <Card
+            onClick={() => router.push('/template')}
             className="border-gray-800 bg-gray-950 text-white cursor-pointer hover:border-purple-500 transition-all hover:scale-105"
           >
             <CardContent className="pt-6">
@@ -132,7 +133,7 @@ export default function DashboardPage() {
               <h3 className="font-semibold">Choose Template</h3>
               <p className="text-gray-400 text-sm mt-1">Pick your portfolio style</p>
               <span className="mt-2 inline-block rounded-full bg-purple-900/40 px-2 py-0.5 text-xs text-purple-300 border border-purple-800">
-                Coming soon
+                
               </span>
             </CardContent>
           </Card>

@@ -1,4 +1,5 @@
 'use client'
+
 import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
@@ -42,26 +43,35 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-black">
-      <Card className="w-full max-w-md border-gray-800 bg-gray-950 text-white">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">Welcome back</CardTitle>
+    <main className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top,#0b0f1a,#020617)] px-4">
+
+      <Card className="w-full max-w-md border border-white/10 bg-white/5 backdrop-blur-xl text-white shadow-2xl animate-fadeIn">
+
+        {/* HEADER */}
+        <CardHeader className="text-center space-y-2">
+          <CardTitle className="text-3xl font-semibold tracking-tight">
+            Welcome back
+          </CardTitle>
           <CardDescription className="text-gray-400">
             Login to your CanvaPortfolio account
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
 
+        <CardContent className="space-y-5">
+
+          {/* ERROR */}
           {error && (
-            <p className="rounded-md bg-red-900/30 p-3 text-sm text-red-400">{error}</p>
+            <p className="rounded-md bg-red-900/30 p-3 text-sm text-red-400">
+              {error}
+            </p>
           )}
 
-          {/* Google Login Button */}
+          {/* GOOGLE LOGIN */}
           <Button
             onClick={handleGoogleLogin}
             disabled={googleLoading}
             variant="outline"
-            className="w-full border-gray-700 bg-gray-900 text-white hover:bg-gray-800"
+            className="w-full border border-white/10 bg-white/5 hover:bg-white/10 backdrop-blur-md transition"
           >
             {googleLoading ? (
               'Redirecting...'
@@ -78,17 +88,19 @@ export default function LoginPage() {
             )}
           </Button>
 
-          {/* Divider */}
-          <div className="relative">
+          {/* DIVIDER */}
+          <div className="relative my-4">
             <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t border-gray-700" />
+              <div className="w-full border-t border-white/10"></div>
             </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-gray-950 px-2 text-gray-500">Or continue with email</span>
+            <div className="relative flex justify-center">
+              <span className="px-3 text-xs uppercase text-gray-500 bg-[#020617]">
+                Or continue with email
+              </span>
             </div>
           </div>
 
-          {/* Email Login */}
+          {/* EMAIL */}
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <Input
@@ -97,10 +109,11 @@ export default function LoginPage() {
               placeholder="you@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="border-gray-700 bg-gray-900 text-white"
+              className="border-white/10 bg-white/5 text-white focus:ring-2 focus:ring-indigo-500"
             />
           </div>
 
+          {/* PASSWORD */}
           <div className="space-y-2">
             <Label htmlFor="password">Password</Label>
             <Input
@@ -109,21 +122,23 @@ export default function LoginPage() {
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="border-gray-700 bg-gray-900 text-white"
+              className="border-white/10 bg-white/5 text-white focus:ring-2 focus:ring-indigo-500"
             />
           </div>
 
+          {/* LOGIN BUTTON */}
           <Button
             onClick={handleLogin}
             disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-700"
+            className="w-full bg-gradient-to-r from-indigo-500 to-green-400 hover:opacity-90 transition"
           >
             {loading ? 'Logging in...' : 'Login'}
           </Button>
 
+          {/* SIGNUP */}
           <p className="text-center text-sm text-gray-400">
             Don&apos;t have an account?{' '}
-            <Link href="/signup" className="text-blue-400 hover:underline">
+            <Link href="/signup" className="text-indigo-400 hover:underline">
               Sign up
             </Link>
           </p>
